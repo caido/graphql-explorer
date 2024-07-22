@@ -1,0 +1,39 @@
+{
+  "extends": ["config:recommended"],
+  "timezone": "America/New_York",
+  "schedule": ["every weekend"],
+  "labels": ["dependency"],
+  "rebaseWhen": "conflicted",
+  "stabilityDays": 14,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 0,
+  "internalChecksFilter": "strict",
+  "packageRules": [
+    {
+      "matchPackageNames": ["typescript", "sass"],
+      "automerge": true
+    },
+    {
+      "matchPackagePatterns": ["eslint", "prettier"],
+      "groupName": "eslint",
+      "automerge": true
+    },
+    {
+      "matchPackagePatterns": ["@vitejs", "^vite-", "rollup"],
+      "groupName": "vite",
+      "automerge": true
+    },
+    {
+      "matchPackagePatterns": ["actions/", "pnpm/action-setup"],
+      "groupName": "actions"
+    },
+    {
+      "matchPackagePatterns": ["graphql", "graphql-ws"],
+      "groupName": "graphql"
+    },
+    {
+      "matchPackagePatterns": ["react", "react-dom"],
+      "groupName": "react"
+    }
+  ]
+}
