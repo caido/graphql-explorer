@@ -4,7 +4,7 @@ services:
     runtime: static
     repo: https://github.com/caido/graphql-explorer.git
     branch: main
-    buildCommand: make build
+    buildCommand: make build-release
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: true
     domains:
