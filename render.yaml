@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: graphql-explorer
+    runtime: static
+    repo: https://github.com/caido/graphql-explorer.git
+    branch: main
+    buildCommand: pnpm build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: true
+    domains:
+      - graphql-explorer.caido.io
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: true
