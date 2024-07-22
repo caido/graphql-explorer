@@ -1,0 +1,54 @@
+// :root {
+//   // Accents
+//   --active-accent: #daa04a;
+
+//   // Backgrounds
+//   --main-background: #25272d;
+//   --card-background: #2f323a;
+
+//   // Background texts
+//   --text-on-card-background: #edeae8;
+//   --text-on-info-background: #2e2e2e;
+
+//   // Component texts
+//   --text: #edeae8;
+// }
+
+// .graphql-voyager {
+//   background: var(--main-background);
+//   .doc-panel {
+//     background: var(--main-background);
+//   }
+// }
+
+// .node {
+//   polygon {
+//     stroke: var(--text);
+//     fill: var(--card-background);
+//   }
+
+//   .type-title {
+//     polygon {
+//       fill: var(--active-accent);
+//     }
+//     text {
+//       fill: var(--text-on-info-background);
+//       font-weight: bold;
+//     }
+//   }
+// }
+
+// .edge path {
+//   stroke: var(--active-accent);
+//   stroke-width: 2;
+// }
+
+// .field-name {
+//   fill: var(--text-on-card-background)
+// }
+
+// .doc-panel {
+//   .contents {
+//     background: none;
+//   }
+// }
