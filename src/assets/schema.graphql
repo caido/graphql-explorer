@@ -507,6 +507,8 @@ type BackupUserError implements UserError {
 	reason: BackupErrorReason!
 }
 
+scalar Binary
+
 scalar Blob
 
 
@@ -554,13 +556,40 @@ type CancelTaskPayload {
 	error: CancelTaskError
 }
 
+type Certificate {
+	p12(password: Sensitive): Binary!
+}
+
+enum CertificateErrorReason {
+	INVALID_CERTIFICATE
+	INVALID_P12
+	INVALID_PASSWORD
+	INVALID_PRIVATE_KEY
+}
+
+input CertificateInput @oneOf {
+	p12: CertificateInputP12
+}
+
+input CertificateInputP12 {
+	file: Upload!
+	password: Sensitive
+}
+
+type CertificateUserError implements UserError {
+	code: String!
+	reason: CertificateErrorReason!
+}
+
 type ConnectionInfo {
+	SNI: String
 	host: String!
-	isTls: Boolean!
+	isTLS: Boolean!
 	port: Port!
 }
 
 input ConnectionInfoInput {
+	SNI: String
 	host: String!
 	isTLS: Boolean!
 	port: Port!
@@ -596,6 +625,18 @@ union CreateBackupError = TaskInProgressUserError | PermissionDeniedUserError | 
 type CreateBackupPayload {
 	error: CreateBackupError
 	task: BackupTask
+}
+
+union CreateEnvironmentError = NameTakenUserError | PermissionDeniedUserError | OtherUserError
+
+input CreateEnvironmentInput {
+	name: String!
+	variables: [EnvironmentVariableInput!]!
+}
+
+type CreateEnvironmentPayload {
+	environment: Environment
+	error: CreateEnvironmentError
 }
 
 union CreateFilterPresetError = NameTakenUserError | AliasTakenUserError | PermissionDeniedUserError | OtherUserError
@@ -787,6 +828,11 @@ type CreatedDataExportPayload {
 
 type CreatedDataExportTaskPayload {
 	exportTaskEdge: DataExportTaskEdge!
+}
+
+type CreatedEnvironmentPayload {
+	environment: Environment!
+	snapshot: Snapshot!
 }
 
 type CreatedFilterPresetPayload {
@@ -985,6 +1031,13 @@ type DeleteDataExportPayload {
 	userError: DeleteDataExportError
 }
 
+union DeleteEnvironmentError = UnknownIdUserError | OtherUserError
+
+type DeleteEnvironmentPayload {
+	deletedId: ID
+	error: DeleteEnvironmentError
+}
+
 type DeleteFilterPresetPayload {
 	deletedId: ID
 }
@@ -1023,7 +1076,7 @@ type DeleteProjectPayload {
 	error: DeleteProjectPayloadError
 }
 
-union DeleteProjectPayloadError = ProjectLockedUserError | OtherUserError
+union DeleteProjectPayloadError = ProjectUserError | UnknownIdUserError | OtherUserError
 
 type DeleteReplaySessionCollectionPayload {
 	deletedId: ID
@@ -1098,6 +1151,11 @@ type DeletedDataExportPayload {
 
 type DeletedDataExportTaskPayload {
 	deletedExportTaskId: ID!
+}
+
+type DeletedEnvironmentPayload {
+	deletedEnvironmentId: ID!
+	snapshot: Snapshot!
 }
 
 type DeletedFilterPresetPayload {
@@ -1182,6 +1240,35 @@ type DuplicateAutomateSessionPayload {
 
 type EnableTamperRulePayload {
 	rule: TamperRule
+}
+
+type Environment {
+	id: ID!
+	name: String!
+	variables: [EnvironmentVariable!]!
+	version: Int!
+}
+
+type EnvironmentContext {
+	global: Environment
+	selected: Environment
+}
+
+type EnvironmentVariable {
+	kind: EnvironmentVariableKind!
+	name: String!
+	value: String!
+}
+
+input EnvironmentVariableInput {
+	kind: EnvironmentVariableKind!
+	name: String!
+	value: String!
+}
+
+enum EnvironmentVariableKind {
+	PLAIN
+	SECRET
 }
 
 input FilterClauseFindingInput {
@@ -1351,6 +1438,16 @@ type HostedFile {
 
 
 scalar Image
+
+union ImportCertificateError = CertificateUserError | OtherUserError
+
+input ImportCertificateInput {
+	certificate: CertificateInput!
+}
+
+type ImportCertificatePayload {
+	error: ImportCertificateError
+}
 
 union InstallBrowserError = UnsupportedPlatformUserError | OtherUserError
 
@@ -1574,6 +1671,7 @@ type MutationRoot {
 	createAssistantSession(input: CreateAssistantSessionInput!): CreateAssistantSessionPayload!
 	createAutomateSession(input: CreateAutomateSessionInput!): CreateAutomateSessionPayload!
 	createBackup(projectId: ID!): CreateBackupPayload!
+	createEnvironment(input: CreateEnvironmentInput!): CreateEnvironmentPayload!
 	createFilterPreset(input: CreateFilterPresetInput!): CreateFilterPresetPayload!
 	createFinding(requestId: ID!, input: CreateFindingInput!): CreateFindingPayload!
 	createProject(input: CreateProjectInput!): CreateProjectPayload!
@@ -1592,6 +1690,7 @@ type MutationRoot {
 	deleteBackup(id: ID!): DeleteBackupPayload!
 	deleteBrowser: DeleteBrowserPayload!
 	deleteDataExport(id: ID!): DeleteDataExportPayload!
+	deleteEnvironment(id: ID!): DeleteEnvironmentPayload!
 	deleteFilterPreset(id: ID!): DeleteFilterPresetPayload!
 	deleteFindings(ids: [ID!]!): DeleteFindingsPayload!
 	deleteHostedFile(id: ID!): DeleteHostedFilePayload!
@@ -1612,6 +1711,7 @@ type MutationRoot {
 	enableTamperRule(id: ID!): EnableTamperRulePayload!
 	forwardInterceptMessage(id: ID!, input: ForwardInterceptMessageInput): ForwardInterceptMessagePayload!
 	globalizeWorkflow(id: ID!): GlobalizeWorkflowPayload!
+	importCertificate(input: ImportCertificateInput!): ImportCertificatePayload!
 	installBrowser: InstallBrowserPayload!
 	installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload!
 	localizeWorkflow(id: ID!): LocalizeWorkflowPayload!
@@ -1624,6 +1724,7 @@ type MutationRoot {
 	rankUpstreamProxyHttp(id: ID!, input: RankUpstreamProxyHttpInput!): RankUpstreamProxyHttpPayload!
 	rankUpstreamProxySocks(id: ID!, input: RankUpstreamProxySocksInput!): RankUpstreamProxySocksPayload!
 	refreshAuthenticationToken(refreshToken: Token!): RefreshAuthenticationTokenPayload!
+	regenerateCertificate: RegenerateCertificatePayload!
 	renameAssistantSession(id: ID!, name: String!): RenameAssistantSessionPayload!
 	renameAutomateEntry(id: ID!, name: String!): RenameAutomateEntryPayload!
 	renameAutomateSession(id: ID!, name: String!): RenameAutomateSessionPayload!
@@ -1643,6 +1744,7 @@ type MutationRoot {
 	resumeIntercept: ResumeInterceptPayload!
 	runActiveWorkflow(id: ID!, input: RunActiveWorkflowInput!): RunActiveWorkflowPayload!
 	runConvertWorkflow(id: ID!, input: Blob!): RunConvertWorkflowPayload!
+	selectEnvironment(id: ID): SelectEnvironmentPayload!
 	selectProject(id: ID!): SelectProjectPayload!
 	sendAssistantMessage(sessionId: ID!, message: String): SendAssistantMessagePayload!
 	setActiveReplaySessionEntry(id: ID!, entryId: ID!): SetActiveReplaySessionEntryPayload! @deprecated(reason: "Remove usage, no replacement")
@@ -1664,6 +1766,7 @@ type MutationRoot {
 	uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
 	updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
 	updateBrowser: UpdateBrowserPayload!
+	updateEnvironment(id: ID!, input: UpdateEnvironmentInput!): UpdateEnvironmentPayload!
 	updateFilterPreset(id: ID!, input: UpdateFilterPresetInput!): UpdateFilterPresetPayload!
 	updateRequestMetadata(id: ID!, input: UpdateRequestMetadataInput!): UpdateRequestMetadataPayload!
 	updateScope(id: ID!, input: UpdateScopeInput!): UpdateScopePayload!
@@ -1678,6 +1781,11 @@ type MutationRoot {
 type NameTakenUserError implements UserError {
 	code: String!
 	name: String!
+}
+
+type NewerVersionUserError implements UserError {
+	code: String!
+	version: Int!
 }
 
 type OnboardingState {
@@ -1834,21 +1942,23 @@ type Project {
 	version: String!
 }
 
-enum ProjectLockedErrorReason {
+enum ProjectErrorReason {
 	DELETING
 	EXPORTING
+	INVALID_VERSION
 	NOT_READY
-}
-
-type ProjectLockedUserError implements UserError {
-	code: String!
-	reason: ProjectLockedErrorReason!
+	TOO_RECENT
 }
 
 enum ProjectStatus {
 	ERROR
 	READY
 	RESTORING
+}
+
+type ProjectUserError implements UserError {
+	code: String!
+	reason: ProjectErrorReason!
 }
 
 type QueryRoot {
@@ -1867,6 +1977,9 @@ type QueryRoot {
 	dataExport(id: ID!): DataExport
 	dataExportTasks: [DataExportTask!]!
 	dataExports: [DataExport!]!
+	environment(id: ID!): Environment
+	environmentContext: EnvironmentContext!
+	environments: [Environment!]!
 	filterPreset(id: ID!): FilterPreset
 	filterPresets: [FilterPreset!]!
 	finding(id: ID!): Finding
@@ -1965,6 +2078,10 @@ union RefreshAuthenticationTokenError = AuthenticationUserError | OtherUserError
 type RefreshAuthenticationTokenPayload {
 	error: RefreshAuthenticationTokenError
 	token: AuthenticationToken
+}
+
+type RegenerateCertificatePayload {
+	success: Boolean!
 }
 
 type Release {
@@ -2121,6 +2238,14 @@ input ReplayEntrySettingsInput {
 	updateContentLength: Boolean!
 }
 
+type ReplayEnvironmentPreprocessor {
+	variableName: String!
+}
+
+input ReplayEnvironmentPreprocessorInput {
+	variableName: String!
+}
+
 type ReplayPlaceholder {
 	inputRange: Range!
 	outputRange: Range!
@@ -2149,9 +2274,10 @@ input ReplayPreprocessorInput {
 	options: ReplayPreprocessorOptionsInput!
 }
 
-union ReplayPreprocessorOptions = ReplayPrefixPreprocessor | ReplaySuffixPreprocessor | ReplayUrlEncodePreprocessor | ReplayWorkflowPreprocessor
+union ReplayPreprocessorOptions = ReplayPrefixPreprocessor | ReplaySuffixPreprocessor | ReplayUrlEncodePreprocessor | ReplayWorkflowPreprocessor | ReplayEnvironmentPreprocessor
 
 input ReplayPreprocessorOptionsInput @oneOf {
+	environment: ReplayEnvironmentPreprocessorInput
 	prefix: ReplayPrefixPreprocessorInput
 	suffix: ReplaySuffixPreprocessorInput
 	urlEncode: ReplayUrlEncodePreprocessorInput
@@ -2283,6 +2409,7 @@ type Request {
 	query: String!
 	raw: Blob!
 	response: Response
+	sni: String
 	source: Source!
 	stream: Stream
 }
@@ -2415,6 +2542,7 @@ type RunConvertWorkflowPayload {
 
 type Runtime {
 	availableUpdate: Release
+	certificate: Certificate!
 	logs: Uri!
 	platform: String!
 	version: String!
@@ -2442,12 +2570,19 @@ type ScopeEdge {
 	node: Scope!
 }
 
+union SelectEnvironmentError = UnknownIdUserError | OtherUserError
+
+type SelectEnvironmentPayload {
+	environment: Environment
+	error: SelectEnvironmentError
+}
+
 type SelectProjectPayload {
 	error: SelectProjectPayloadError
 	project: Project
 }
 
-union SelectProjectPayloadError = ProjectLockedUserError | OtherUserError
+union SelectProjectPayloadError = ProjectUserError | UnknownIdUserError | OtherUserError
 
 union SendAssistantMessageError = PermissionDeniedUserError | TaskInProgressUserError | OtherUserError
 
@@ -2783,6 +2918,7 @@ type SubscriptionRoot {
 	createdBackup: CreatedBackupPayload!
 	createdDataExport: CreatedDataExportPayload!
 	createdDataExportTask: CreatedDataExportTaskPayload!
+	createdEnvironment: CreatedEnvironmentPayload!
 	createdFilterPreset: CreatedFilterPresetPayload!
 	createdFinding: CreatedFindingPayload!
 	createdInterceptEntry(filter: HTTPQL, scopeId: ID): CreatedInterceptEntryPayload!
@@ -2810,6 +2946,7 @@ type SubscriptionRoot {
 	deletedBrowser: DeletedBrowserPayload!
 	deletedDataExport: DeletedDataExportPayload!
 	deletedDataExportTask: DeletedDataExportTaskPayload!
+	deletedEnvironment: DeletedEnvironmentPayload!
 	deletedFilterPreset: DeletedFilterPresetPayload!
 	deletedFindings: DeletedFindingsPayload!
 	deletedHostedFile: DeletedHostedFilePayload!
@@ -2843,6 +2980,8 @@ type SubscriptionRoot {
 	updatedBrowser: UpdatedBrowserPayload!
 	updatedDataExport: UpdatedDataExportPayload!
 	updatedDeleteInterceptEntriesTask: UpdatedDeleteInterceptEntriesTaskPayload!
+	updatedEnvironment: UpdatedEnvironmentPayload!
+	updatedEnvironmentContext: UpdatedEnvironmentContextPayload!
 	updatedFilterPreset: UpdatedFilterPresetPayload!
 	updatedHostedFile: UpdatedHostedFilePayload!
 	updatedInterceptEntry(filter: HTTPQL, scopeId: ID): UpdatedInterceptEntryPayload!
@@ -3046,6 +3185,19 @@ type UpdateBrowserPayload {
 	error: UpdateBrowserError
 }
 
+union UpdateEnvironmentError = UnknownIdUserError | NameTakenUserError | NewerVersionUserError | PermissionDeniedUserError | OtherUserError
+
+input UpdateEnvironmentInput {
+	name: String!
+	variables: [EnvironmentVariableInput!]!
+	version: Int!
+}
+
+type UpdateEnvironmentPayload {
+	environment: Environment
+	error: UpdateEnvironmentError
+}
+
 union UpdateFilterPresetError = NameTakenUserError | AliasTakenUserError | OtherUserError
 
 input UpdateFilterPresetInput {
@@ -3183,6 +3335,15 @@ type UpdatedDataExportPayload {
 type UpdatedDeleteInterceptEntriesTaskPayload {
 	snapshot: Snapshot!
 	task: DeleteInterceptEntriesTask!
+}
+
+type UpdatedEnvironmentContextPayload {
+	environmentContext: EnvironmentContext!
+}
+
+type UpdatedEnvironmentPayload {
+	environment: Environment!
+	snapshot: Snapshot!
 }
 
 type UpdatedFilterPresetPayload {
