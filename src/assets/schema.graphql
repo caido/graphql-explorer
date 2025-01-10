@@ -1,5 +1,3 @@
-directive @oneOf on INPUT_OBJECT
-
 scalar Alias
 
 type AliasTakenUserError implements UserError {
@@ -55,7 +53,7 @@ type AssistantMessageTask {
 	session: AssistantSession!
 }
 
-union AssistantMessageTaskError = AssistantUserError | AuthenticationUserError | OtherUserError
+union AssistantMessageTaskError = AssistantUserError | AuthenticationUserError | CloudUserError | OtherUserError
 
 type AssistantModel {
 	id: ID!
@@ -96,11 +94,8 @@ type AssistantUserError implements UserError {
 }
 
 enum AuthenticationErrorReason {
-	CLOUD_ERROR
-	CLOUD_UNAVAILABLE
 	DENIED
 	EXPIRED
-	INTERNAL
 	INVALID
 	STALE_DATE
 }
@@ -128,6 +123,17 @@ type AuthenticationToken {
 type AuthenticationUserError implements UserError {
 	code: String!
 	reason: AuthenticationErrorReason!
+}
+
+enum AuthorizationErrorReason {
+	FORBIDDEN
+	INVALID_TOKEN
+	MISSING_SCOPE
+}
+
+type AuthorizationUserError implements UserError {
+	code: String!
+	reason: AuthorizationErrorReason!
 }
 
 type AutomateConcurrencySetting {
@@ -581,6 +587,16 @@ type CertificateUserError implements UserError {
 	reason: CertificateErrorReason!
 }
 
+enum CloudErrorReason {
+	UNAVAILABLE
+	UNEXPECTED
+}
+
+type CloudUserError implements UserError {
+	code: String!
+	reason: CloudErrorReason!
+}
+
 type ConnectionInfo {
 	SNI: String
 	host: String!
@@ -600,7 +616,7 @@ type Count {
 	value: Int!
 }
 
-union CreateAssistantSessionError = PermissionDeniedUserError | OtherUserError
+union CreateAssistantSessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input CreateAssistantSessionInput {
 	modelId: ID!
@@ -620,14 +636,14 @@ type CreateAutomateSessionPayload {
 	session: AutomateSession
 }
 
-union CreateBackupError = TaskInProgressUserError | PermissionDeniedUserError | OtherUserError
+union CreateBackupError = TaskInProgressUserError | PermissionDeniedUserError | CloudUserError | OtherUserError
 
 type CreateBackupPayload {
 	error: CreateBackupError
 	task: BackupTask
 }
 
-union CreateEnvironmentError = NameTakenUserError | PermissionDeniedUserError | OtherUserError
+union CreateEnvironmentError = NameTakenUserError | PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input CreateEnvironmentInput {
 	name: String!
@@ -639,7 +655,7 @@ type CreateEnvironmentPayload {
 	error: CreateEnvironmentError
 }
 
-union CreateFilterPresetError = NameTakenUserError | AliasTakenUserError | PermissionDeniedUserError | OtherUserError
+union CreateFilterPresetError = NameTakenUserError | AliasTakenUserError | PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input CreateFilterPresetInput {
 	alias: Alias!
@@ -675,7 +691,7 @@ type CreateProjectPayload {
 	project: Project
 }
 
-union CreateProjectPayloadError = NameTakenUserError | PermissionDeniedUserError | OtherUserError
+union CreateProjectPayloadError = NameTakenUserError | PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input CreateReplaySessionCollectionInput {
 	name: String!
@@ -790,7 +806,7 @@ type CreatedAssistantSessionPayload {
 	snapshot: Snapshot!
 }
 
-union CreatedAuthenticationTokenError = AuthenticationUserError | OtherUserError
+union CreatedAuthenticationTokenError = AuthenticationUserError | InternalUserError | OtherUserError
 
 type CreatedAuthenticationTokenPayload {
 	error: CreatedAuthenticationTokenError
@@ -1449,14 +1465,14 @@ type ImportCertificatePayload {
 	error: ImportCertificateError
 }
 
-union InstallBrowserError = UnsupportedPlatformUserError | OtherUserError
+union InstallBrowserError = UnsupportedPlatformUserError | CloudUserError | OtherUserError
 
 type InstallBrowserPayload {
 	browser: Browser
 	error: InstallBrowserError
 }
 
-union InstallPluginPackageError = PluginUserError | StoreUserError | OtherUserError
+union InstallPluginPackageError = PluginUserError | StoreUserError | CloudUserError | OtherUserError
 
 input InstallPluginPackageInput {
 	source: PluginPackageSource!
@@ -1581,10 +1597,12 @@ type InterceptRequestMessage implements InterceptMessage {
 
 type InterceptRequestOptions {
 	enabled: Boolean!
+	filter: HTTPQL
 }
 
 input InterceptRequestOptionsInput {
 	enabled: Boolean!
+	filter: HTTPQL
 }
 
 type InterceptResponseMessage implements InterceptMessage {
@@ -1595,10 +1613,12 @@ type InterceptResponseMessage implements InterceptMessage {
 
 type InterceptResponseOptions {
 	enabled: Boolean!
+	filter: HTTPQL
 }
 
 input InterceptResponseOptionsInput {
 	enabled: Boolean!
+	filter: HTTPQL
 }
 
 type InterceptScopeOptions {
@@ -1650,7 +1670,10 @@ type LocalizeWorkflowPayload {
 	workflow: Workflow
 }
 
+union LogoutError = CloudUserError | OtherUserError
+
 type LogoutPayload {
+	error: LogoutError
 	success: Boolean!
 }
 
@@ -1668,13 +1691,13 @@ type MutationRoot {
 	cancelDataExportTask(id: ID!): CancelDataExportTaskPayload!
 	cancelRestoreBackupTask(id: ID!): CancelRestoreBackupTaskPayload!
 	cancelTask(id: ID!): CancelTaskPayload!
-	createAssistantSession(input: CreateAssistantSessionInput!): CreateAssistantSessionPayload!
+	createAssistantSession(input: CreateAssistantSessionInput!): CreateAssistantSessionPayload! @cloud
 	createAutomateSession(input: CreateAutomateSessionInput!): CreateAutomateSessionPayload!
-	createBackup(projectId: ID!): CreateBackupPayload!
-	createEnvironment(input: CreateEnvironmentInput!): CreateEnvironmentPayload!
-	createFilterPreset(input: CreateFilterPresetInput!): CreateFilterPresetPayload!
+	createBackup(projectId: ID!): CreateBackupPayload! @cloud
+	createEnvironment(input: CreateEnvironmentInput!): CreateEnvironmentPayload! @cloud
+	createFilterPreset(input: CreateFilterPresetInput!): CreateFilterPresetPayload! @cloud
 	createFinding(requestId: ID!, input: CreateFindingInput!): CreateFindingPayload!
-	createProject(input: CreateProjectInput!): CreateProjectPayload!
+	createProject(input: CreateProjectInput!): CreateProjectPayload! @cloud
 	createReplaySession(input: CreateReplaySessionInput!): CreateReplaySessionPayload!
 	createReplaySessionCollection(input: CreateReplaySessionCollectionInput!): CreateReplaySessionCollectionPayload!
 	createScope(input: CreateScopeInput!): CreateScopePayload!
@@ -1683,7 +1706,7 @@ type MutationRoot {
 	createTamperRuleCollection(input: CreateTamperRuleCollectionInput!): CreateTamperRuleCollectionPayload!
 	createUpstreamProxyHttp(input: CreateUpstreamProxyHttpInput!): CreateUpstreamProxyHttpPayload!
 	createUpstreamProxySocks(input: CreateUpstreamProxySocksInput!): CreateUpstreamProxySocksPayload!
-	createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload!
+	createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload! @cloud
 	deleteAssistantSession(id: ID!): DeleteAssistantSessionPayload!
 	deleteAutomateEntries(ids: [ID!]!): DeleteAutomateEntriesPayload!
 	deleteAutomateSession(id: ID!): DeleteAutomateSessionPayload!
@@ -1712,10 +1735,10 @@ type MutationRoot {
 	forwardInterceptMessage(id: ID!, input: ForwardInterceptMessageInput): ForwardInterceptMessagePayload!
 	globalizeWorkflow(id: ID!): GlobalizeWorkflowPayload!
 	importCertificate(input: ImportCertificateInput!): ImportCertificatePayload!
-	installBrowser: InstallBrowserPayload!
-	installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload!
+	installBrowser: InstallBrowserPayload! @cloud
+	installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload! @cloud
 	localizeWorkflow(id: ID!): LocalizeWorkflowPayload!
-	logout: LogoutPayload!
+	logout: LogoutPayload! @cloud
 	moveReplaySession(id: ID!, collectionId: ID!): MoveReplaySessionPayload!
 	moveTamperRule(id: ID!, collectionId: ID!): MoveTamperRulePayload!
 	pauseAutomateTask(id: ID!): PauseAutomateTaskPayload!
@@ -1723,7 +1746,7 @@ type MutationRoot {
 	rankTamperRule(id: ID!, input: RankTamperRuleInput!): RankTamperRulePayload!
 	rankUpstreamProxyHttp(id: ID!, input: RankUpstreamProxyHttpInput!): RankUpstreamProxyHttpPayload!
 	rankUpstreamProxySocks(id: ID!, input: RankUpstreamProxySocksInput!): RankUpstreamProxySocksPayload!
-	refreshAuthenticationToken(refreshToken: Token!): RefreshAuthenticationTokenPayload!
+	refreshAuthenticationToken(refreshToken: Token!): RefreshAuthenticationTokenPayload! @cloud
 	regenerateCertificate: RegenerateCertificatePayload!
 	renameAssistantSession(id: ID!, name: String!): RenameAssistantSessionPayload!
 	renameAutomateEntry(id: ID!, name: String!): RenameAutomateEntryPayload!
@@ -1739,23 +1762,23 @@ type MutationRoot {
 	renameTamperRuleCollection(id: ID!, name: String!): RenameTamperRuleCollectionPayload!
 	renameWorkflow(id: ID!, name: String!): RenameWorkflowPayload!
 	renderRequest(id: ID!, input: RenderRequestInput!): RenderRequestPayload!
-	restoreBackup(input: RestoreBackupInput!): RestoreBackupPayload!
+	restoreBackup(input: RestoreBackupInput!): RestoreBackupPayload! @cloud
 	resumeAutomateTask(id: ID!): ResumeAutomateTaskPayload!
 	resumeIntercept: ResumeInterceptPayload!
 	runActiveWorkflow(id: ID!, input: RunActiveWorkflowInput!): RunActiveWorkflowPayload!
 	runConvertWorkflow(id: ID!, input: Blob!): RunConvertWorkflowPayload!
 	selectEnvironment(id: ID): SelectEnvironmentPayload!
 	selectProject(id: ID!): SelectProjectPayload!
-	sendAssistantMessage(sessionId: ID!, message: String): SendAssistantMessagePayload!
+	sendAssistantMessage(sessionId: ID!, message: String): SendAssistantMessagePayload! @cloud
 	setActiveReplaySessionEntry(id: ID!, entryId: ID!): SetActiveReplaySessionEntryPayload! @deprecated(reason: "Remove usage, no replacement")
 	setGlobalConfigOnboarding(input: SetConfigOnboardingInput!): SetConfigOnboardingPayload!
 	setGlobalConfigPort(input: Int!): SetConfigPortPayload!
 	setInterceptOptions(input: InterceptOptionsInput!): SetInterceptOptionsPayload!
 	setPluginData(id: ID!, data: JSON!): SetPluginDataPayload!
-	startAuthenticationFlow: StartAuthenticationFlowPayload!
+	startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
 	startAutomateTask(automateSessionId: ID!): StartAutomateTaskPayload!
-	startExportRequestsTask(input: StartExportRequestsTaskInput!): StartExportRequestsTaskPayload!
-	startReplayTask(sessionId: ID!, input: StartReplayTaskInput!): StartReplayTaskPayload!
+	startExportRequestsTask(input: StartExportRequestsTaskInput!): StartExportRequestsTaskPayload! @cloud
+	startReplayTask(sessionId: ID!, input: StartReplayTaskInput!): StartReplayTaskPayload! @cloud
 	testTamperRule(input: TestTamperRuleInput!): TestTamperRulePayload!
 	testUpstreamProxyHttp(input: TestUpstreamProxyHttpInput!): TestUpstreamProxyHttpPayload!
 	testUpstreamProxySocks(input: TestUpstreamProxySocksInput!): TestUpstreamProxySocksPayload!
@@ -1764,9 +1787,9 @@ type MutationRoot {
 	toggleUpstreamProxySocks(id: ID!, enabled: Boolean!): ToggleUpstreamProxySocksPayload!
 	toggleWorkflow(id: ID!, enabled: Boolean!): ToggleWorkflowPayload!
 	uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
-	updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
-	updateBrowser: UpdateBrowserPayload!
-	updateEnvironment(id: ID!, input: UpdateEnvironmentInput!): UpdateEnvironmentPayload!
+	updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload! @cloud
+	updateBrowser: UpdateBrowserPayload! @cloud
+	updateEnvironment(id: ID!, input: UpdateEnvironmentInput!): UpdateEnvironmentPayload! @cloud
 	updateFilterPreset(id: ID!, input: UpdateFilterPresetInput!): UpdateFilterPresetPayload!
 	updateRequestMetadata(id: ID!, input: UpdateRequestMetadataInput!): UpdateRequestMetadataPayload!
 	updateScope(id: ID!, input: UpdateScopeInput!): UpdateScopePayload!
@@ -1962,7 +1985,7 @@ type ProjectUserError implements UserError {
 }
 
 type QueryRoot {
-	assistantModels: [AssistantModel!]!
+	assistantModels: [AssistantModel!]! @cloud
 	assistantSession(id: ID!): AssistantSession
 	assistantSessions: [AssistantSession!]!
 	automateEntry(id: ID!): AutomateEntry
@@ -2073,7 +2096,7 @@ type ReadOnlyUserError implements UserError {
 	code: String!
 }
 
-union RefreshAuthenticationTokenError = AuthenticationUserError | OtherUserError
+union RefreshAuthenticationTokenError = AuthenticationUserError | CloudUserError | InternalUserError | OtherUserError
 
 type RefreshAuthenticationTokenPayload {
 	error: RefreshAuthenticationTokenError
@@ -2541,7 +2564,7 @@ type RunConvertWorkflowPayload {
 }
 
 type Runtime {
-	availableUpdate: Release
+	availableUpdate: Release @cloud
 	certificate: Certificate!
 	logs: Uri!
 	platform: String!
@@ -2584,7 +2607,7 @@ type SelectProjectPayload {
 
 union SelectProjectPayloadError = ProjectUserError | UnknownIdUserError | OtherUserError
 
-union SendAssistantMessageError = PermissionDeniedUserError | TaskInProgressUserError | OtherUserError
+union SendAssistantMessageError = PermissionDeniedUserError | TaskInProgressUserError | CloudUserError | OtherUserError
 
 type SendAssistantMessagePayload {
 	error: SendAssistantMessageError
@@ -2693,7 +2716,7 @@ enum Source {
 	WORKFLOW
 }
 
-union StartAuthenticationFlowError = AuthenticationUserError | OtherUserError
+union StartAuthenticationFlowError = AuthenticationUserError | CloudUserError | InternalUserError | OtherUserError
 
 type StartAuthenticationFlowPayload {
 	error: StartAuthenticationFlowError
@@ -2718,7 +2741,7 @@ type StartExportRequestsTaskPayload {
 
 union StartExportRequestsTaskPayloadError = PermissionDeniedUserError | OtherUserError
 
-union StartReplayTaskError = TaskInProgressUserError | PermissionDeniedUserError | OtherUserError
+union StartReplayTaskError = TaskInProgressUserError | PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input StartReplayTaskInput {
 	connection: ConnectionInfoInput!
@@ -2748,7 +2771,7 @@ type StartedTaskPayload {
 }
 
 type Store {
-	pluginPackages: [StorePluginPackage!]!
+	pluginPackages: [StorePluginPackage!]! @cloud
 }
 
 enum StoreErrorReason {
@@ -2762,6 +2785,7 @@ enum StoreErrorReason {
 type StorePluginPackage {
 	author: StorePluginPackageAuthor
 	description: String
+	downloads: Int!
 	license: String!
 	manifestId: ID!
 	name: String
@@ -3165,7 +3189,7 @@ type UnsupportedPlatformUserError implements UserError {
 	code: String!
 }
 
-union UpdateAutomateSessionError = PermissionDeniedUserError | OtherUserError
+union UpdateAutomateSessionError = PermissionDeniedUserError | CloudUserError | OtherUserError
 
 input UpdateAutomateSessionInput {
 	connection: ConnectionInfoInput!
@@ -3178,7 +3202,7 @@ type UpdateAutomateSessionPayload {
 	session: AutomateSession
 }
 
-union UpdateBrowserError = RenderFailedUserError | UnsupportedPlatformUserError | OtherUserError
+union UpdateBrowserError = RenderFailedUserError | UnsupportedPlatformUserError | CloudUserError | OtherUserError
 
 type UpdateBrowserPayload {
 	browser: Browser
@@ -3506,10 +3530,10 @@ URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
 scalar Url
 
 type User {
-	assistantUsage: AssistantUsage!
+	assistantUsage: AssistantUsage! @cloud
 	id: ID!
 	plugins: [PluginFrontend!]!
-	profile: UserProfile!
+	profile: UserProfile! @cloud
 	settings: UserSettings
 }
 
@@ -3603,6 +3627,12 @@ type WorkflowUserError implements UserError {
 	reason: WorkflowErrorReason!
 }
 
+directive @cloud on FIELD_DEFINITION
+directive @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @oneOf on INPUT_OBJECT
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @specifiedBy(url: String!) on SCALAR
 schema {
 	query: QueryRoot
 	mutation: MutationRoot
