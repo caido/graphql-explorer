@@ -527,6 +527,11 @@ type Browser {
 	version: String!
 }
 
+type BrowserRequest {
+	replay: String!
+	showResponse: String!
+}
+
 union CancelAutomateTaskError = UnknownIdUserError | OtherUserError
 
 type CancelAutomateTaskPayload {
@@ -870,6 +875,10 @@ type CreatedInterceptMessagePayload {
 	snapshot: Snapshot!
 }
 
+type CreatedLogLinesPayload {
+	lines: [LogLine!]!
+}
+
 type CreatedPluginEventPayload {
 	eventArgs: [JsonRaw!]!
 	eventName: String!
@@ -941,6 +950,11 @@ type CreatedUpstreamProxySocksPayload {
 
 type CreatedWorkflowPayload {
 	workflowEdge: WorkflowEdge!
+}
+
+type CurrentProject {
+	config: ProjectConfig!
+	project: Project!
 }
 
 type DataExport {
@@ -1254,6 +1268,8 @@ type DuplicateAutomateSessionPayload {
 	session: AutomateSession
 }
 
+scalar Duration
+
 type EnableTamperRulePayload {
 	rule: TamperRule
 }
@@ -1432,6 +1448,12 @@ input ForwardInterceptResponseMessageInput {
 type GlobalConfig {
 	address: String!
 	onboarding: OnboardingState!
+	project: GlobalConfigProject!
+}
+
+type GlobalConfigProject {
+	selectOnStart: ProjectSelectOnStart!
+	selectProjectId: ID
 }
 
 union GlobalizeWorkflowError = UnknownIdUserError | ReadOnlyUserError | WorkflowUserError | OtherUserError
@@ -1670,6 +1692,21 @@ type LocalizeWorkflowPayload {
 	workflow: Workflow
 }
 
+enum LogLevel {
+	DEBUG
+	ERROR
+	INFO
+	TRACE
+	WARN
+}
+
+type LogLine {
+	level: LogLevel!
+	message: String!
+	target: String!
+	timestamp: Timestamp!
+}
+
 union LogoutError = CloudUserError | OtherUserError
 
 type LogoutPayload {
@@ -1773,8 +1810,10 @@ type MutationRoot {
 	setActiveReplaySessionEntry(id: ID!, entryId: ID!): SetActiveReplaySessionEntryPayload! @deprecated(reason: "Remove usage, no replacement")
 	setGlobalConfigOnboarding(input: SetConfigOnboardingInput!): SetConfigOnboardingPayload!
 	setGlobalConfigPort(input: Int!): SetConfigPortPayload!
+	setGlobalConfigProject(input: SetConfigProjectInput!): SetConfigProjectPayload!
 	setInterceptOptions(input: InterceptOptionsInput!): SetInterceptOptionsPayload!
 	setPluginData(id: ID!, data: JSON!): SetPluginDataPayload!
+	setProjectConfigStream(input: ProjectConfigStreamInput!): SetProjectConfigStreamPayload!
 	startAuthenticationFlow: StartAuthenticationFlowPayload! @cloud
 	startAutomateTask(automateSessionId: ID!): StartAutomateTaskPayload!
 	startExportRequestsTask(input: StartExportRequestsTaskInput!): StartExportRequestsTaskPayload! @cloud
@@ -1879,7 +1918,7 @@ interface Plugin {
 type PluginAuthor {
 	email: String
 	name: String
-	url: String
+	url: Url
 }
 
 type PluginBackend implements Plugin {
@@ -1901,6 +1940,7 @@ enum PluginErrorReason {
 }
 
 type PluginFrontend implements Plugin {
+	assets: String
 	backend: PluginBackend
 	data: JSON
 	enabled: Boolean!
@@ -1912,11 +1952,16 @@ type PluginFrontend implements Plugin {
 	style: String
 }
 
+type PluginLinks {
+	sponsor: Url
+}
+
 type PluginPackage {
 	author: PluginAuthor
 	description: String
 	id: ID!
 	installedAt: DateTime!
+	links: PluginLinks
 	manifestId: ID!
 	name: String
 	plugins: [Plugin!]!
@@ -1965,12 +2010,30 @@ type Project {
 	version: String!
 }
 
+type ProjectConfig {
+	stream: ProjectConfigStream!
+}
+
+type ProjectConfigStream {
+	stripExtension: Boolean!
+}
+
+input ProjectConfigStreamInput {
+	stripExtension: Boolean!
+}
+
 enum ProjectErrorReason {
 	DELETING
 	EXPORTING
 	INVALID_VERSION
 	NOT_READY
 	TOO_RECENT
+}
+
+enum ProjectSelectOnStart {
+	LAST_USED
+	NOTHING
+	SELECTED
 }
 
 enum ProjectStatus {
@@ -1996,7 +2059,7 @@ type QueryRoot {
 	backupTasks: [BackupTask!]!
 	backups: [Backup!]!
 	browser: Browser
-	currentProject: Project
+	currentProject: CurrentProject
 	dataExport(id: ID!): DataExport
 	dataExportTasks: [DataExportTask!]!
 	dataExports: [DataExport!]!
@@ -2417,6 +2480,7 @@ input ReplayWorkflowPreprocessorInput {
 
 type Request {
 	alteration: Alteration!
+	browser: BrowserRequest!
 	createdAt: Timestamp!
 	edited: Boolean!
 	edits: [Request!]!
@@ -2601,8 +2665,8 @@ type SelectEnvironmentPayload {
 }
 
 type SelectProjectPayload {
+	currentProject: CurrentProject
 	error: SelectProjectPayloadError
-	project: Project
 }
 
 union SelectProjectPayloadError = ProjectUserError | UnknownIdUserError | OtherUserError
@@ -2634,6 +2698,15 @@ type SetConfigPortPayload {
 	config: GlobalConfig!
 }
 
+input SetConfigProjectInput {
+	selectOnStart: ProjectSelectOnStart!
+	selectProjectId: ID
+}
+
+type SetConfigProjectPayload {
+	config: GlobalConfig!
+}
+
 type SetInterceptOptionsPayload {
 	options: InterceptOptions!
 }
@@ -2643,6 +2716,10 @@ union SetPluginDataError = UnknownIdUserError | PluginUserError | OtherUserError
 type SetPluginDataPayload {
 	error: SetPluginDataError
 	plugin: Plugin
+}
+
+type SetProjectConfigStreamPayload {
+	config: ProjectConfigStream!
 }
 
 enum SitemapDescendantsDepth {
@@ -2947,6 +3024,7 @@ type SubscriptionRoot {
 	createdFinding: CreatedFindingPayload!
 	createdInterceptEntry(filter: HTTPQL, scopeId: ID): CreatedInterceptEntryPayload!
 	createdInterceptMessage: CreatedInterceptMessagePayload!
+	createdLogLines(duration: Duration!): CreatedLogLinesPayload!
 	createdPluginEvent: CreatedPluginEventPayload!
 	createdPluginPackage: CreatedPluginPackagePayload!
 	createdProject: CreatedProjectPayload!
