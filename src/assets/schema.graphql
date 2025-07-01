@@ -608,6 +608,10 @@ enum CloudErrorReason {
   UNEXPECTED
 }
 
+type CloudStatus {
+  sync: Boolean!
+}
+
 type CloudUser {
   assistantUsage: AssistantUsage! @cloud
   id: ID!
@@ -1618,6 +1622,7 @@ type InstallBrowserPayload {
 union InstallPluginPackageError = PluginUserError | StoreUserError | CloudUserError | OtherUserError
 
 input InstallPluginPackageInput {
+  force: Boolean
   source: PluginPackageSource!
 }
 
@@ -1660,6 +1665,11 @@ type InterceptEntryEdge {
   The item at the end of the edge
   """
   node: InterceptEntry!
+}
+
+type InterceptEntryOffset {
+  offset: Int!
+  snapshot: Snapshot!
 }
 
 enum InterceptEntryOrderBy {
@@ -2239,6 +2249,7 @@ type QueryRoot {
   interceptEntries(after: String, before: String, first: Int, last: Int, filter: HTTPQL, order: InterceptEntryOrderInput, scopeId: ID): InterceptEntryConnection!
   interceptEntriesByOffset(limit: Int, offset: Int, filter: HTTPQL, order: InterceptEntryOrderInput, scopeId: ID): InterceptEntryConnection!
   interceptEntry(id: ID!): InterceptEntry
+  interceptEntryOffset(id: ID!, filter: HTTPQL, order: InterceptEntryOrderInput, scopeId: ID): InterceptEntryOffset
   interceptMessages(after: String, before: String, first: Int, last: Int, kind: InterceptKind!): InterceptMessageConnection!
   interceptOptions: InterceptOptions!
   interceptStatus: InterceptStatus!
@@ -2249,6 +2260,7 @@ type QueryRoot {
   replaySessionCollections(after: String, before: String, first: Int, last: Int): ReplaySessionCollectionConnection!
   replaySessions(after: String, before: String, first: Int, last: Int): ReplaySessionConnection!
   request(id: ID!): Request
+  requestOffset(id: ID!, filter: HTTPQL, order: RequestResponseOrderInput, scopeId: ID): RequestOffset
   requests(after: String, before: String, first: Int, last: Int, filter: HTTPQL, order: RequestResponseOrderInput, scopeId: ID): RequestConnection!
   requestsByOffset(limit: Int, offset: Int, filter: HTTPQL, order: RequestResponseOrderInput, scopeId: ID): RequestConnection!
   response(id: ID!): Response
@@ -2713,6 +2725,11 @@ type RequestMetadata {
   id: ID!
 }
 
+type RequestOffset {
+  offset: Int!
+  snapshot: Snapshot!
+}
+
 input RequestRawInput {
   connectionInfo: ConnectionInfoInput!
   raw: Blob!
@@ -2810,6 +2827,7 @@ type RunConvertWorkflowPayload {
 type Runtime {
   availableUpdate: Release @cloud
   certificate: Certificate!
+  cloudStatus: CloudStatus!
   logs: Uri!
   platform: String!
   version: String!
@@ -3302,6 +3320,7 @@ type SubscriptionRoot {
   updatedUpstreamProxyHttp: UpdatedUpstreamProxyHttpPayload!
   updatedUpstreamProxySocks: UpdatedUpstreamProxySocksPayload!
   updatedViewerAssistantUsage: UpdatedViewerAssistantUsagePayload!
+  updatedViewerProfile: UpdatedViewerProfilePayload!
   updatedViewerSettings: UpdatedViewerSettingsPayload!
   updatedWorkflow: UpdatedWorkflowPayload!
   uploadedHostedFile: UploadedHostedFilePayload!
@@ -4099,6 +4118,10 @@ type UpdatedUpstreamProxySocksPayload {
 
 type UpdatedViewerAssistantUsagePayload {
   usage: AssistantUsage!
+}
+
+type UpdatedViewerProfilePayload {
+  profile: UserProfile!
 }
 
 type UpdatedViewerSettingsPayload {
