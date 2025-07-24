@@ -827,7 +827,7 @@ type CreateUpstreamProxySocksPayload {
   proxy: UpstreamProxySocks
 }
 
-union CreateWorkflowError = WorkflowUserError | OtherUserError
+union CreateWorkflowError = WorkflowUserError | PermissionDeniedUserError | OtherUserError
 
 input CreateWorkflowInput {
   definition: JsonObject!
@@ -1169,6 +1169,11 @@ type DeleteFilterPresetPayload {
   deletedId: ID
 }
 
+input DeleteFindingsInput @oneOf {
+  ids: [ID!]
+  reporter: String
+}
+
 type DeleteFindingsPayload {
   deletedIds: [ID!]
 }
@@ -1441,6 +1446,7 @@ type Finding {
   createdAt: Timestamp!
   dedupeKey: String
   description: String
+  hidden: Boolean!
   host: String!
   id: ID!
   path: String!
@@ -1590,6 +1596,15 @@ type GuestUser {
 }
 
 scalar HTTPQL
+
+input HideFindingsInput @oneOf {
+  ids: [ID!]
+  reporter: String
+}
+
+type HideFindingsPayload {
+  findings: [Finding!]
+}
 
 type HostedFile {
   createdAt: DateTime!
@@ -1903,7 +1918,7 @@ type MutationRoot {
   deleteDnsUpstream(id: ID!): DeleteDNSUpstreamPayload!
   deleteEnvironment(id: ID!): DeleteEnvironmentPayload!
   deleteFilterPreset(id: ID!): DeleteFilterPresetPayload!
-  deleteFindings(ids: [ID!]!): DeleteFindingsPayload!
+  deleteFindings(input: DeleteFindingsInput): DeleteFindingsPayload!
   deleteHostedFile(id: ID!): DeleteHostedFilePayload!
   deleteInterceptEntries(filter: HTTPQL, scopeId: ID): DeleteInterceptEntriesPayload!
   deleteInterceptEntry(id: ID!): DeleteInterceptEntryPayload!
@@ -1921,6 +1936,7 @@ type MutationRoot {
   duplicateAutomateSession(id: ID!): DuplicateAutomateSessionPayload!
   forwardInterceptMessage(id: ID!, input: ForwardInterceptMessageInput): ForwardInterceptMessagePayload!
   globalizeWorkflow(id: ID!): GlobalizeWorkflowPayload!
+  hideFindings(input: HideFindingsInput): HideFindingsPayload!
   importCertificate(input: ImportCertificateInput!): ImportCertificatePayload!
   installBrowser: InstallBrowserPayload! @cloud
   installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload! @cloud
@@ -1990,6 +2006,7 @@ type MutationRoot {
   updateDnsUpstream(id: ID!, input: UpdateDNSUpstreamInput!): UpdateDNSUpstreamPayload!
   updateEnvironment(id: ID!, input: UpdateEnvironmentInput!): UpdateEnvironmentPayload! @cloud
   updateFilterPreset(id: ID!, input: UpdateFilterPresetInput!): UpdateFilterPresetPayload!
+  updateFinding(id: ID!, input: UpdateFindingInput!): UpdateFindingPayload!
   updateRequestMetadata(id: ID!, input: UpdateRequestMetadataInput!): UpdateRequestMetadataPayload!
   updateScope(id: ID!, input: UpdateScopeInput!): UpdateScopePayload!
   updateTamperRule(id: ID!, input: UpdateTamperRuleInput!): UpdateTamperRulePayload!
@@ -3301,6 +3318,7 @@ type SubscriptionRoot {
   updatedEnvironment: UpdatedEnvironmentPayload!
   updatedEnvironmentContext: UpdatedEnvironmentContextPayload!
   updatedFilterPreset: UpdatedFilterPresetPayload!
+  updatedFindings: UpdatedFindingsPayload!
   updatedHostedFile: UpdatedHostedFilePayload!
   updatedInterceptEntry(filter: HTTPQL, scopeId: ID): UpdatedInterceptEntryPayload!
   updatedInterceptOptions: UpdatedInterceptOptionsPayload!
@@ -3888,6 +3906,19 @@ type UpdateFilterPresetPayload {
   filter: FilterPreset
 }
 
+union UpdateFindingError = UnknownIdUserError | OtherUserError
+
+input UpdateFindingInput {
+  description: String
+  hidden: Boolean
+  title: String
+}
+
+type UpdateFindingPayload {
+  error: UpdateFindingError
+  finding: Finding
+}
+
 input UpdateRequestMetadataInput {
   color: String
 }
@@ -4029,6 +4060,15 @@ type UpdatedEnvironmentPayload {
 
 type UpdatedFilterPresetPayload {
   filterEdge: FilterPresetEdge!
+}
+
+type UpdatedFindingPayload {
+  findingEdge(order: FindingOrderInput): FindingEdge!
+  snapshot: Snapshot!
+}
+
+type UpdatedFindingsPayload {
+  findings: [UpdatedFindingPayload!]!
 }
 
 type UpdatedHostedFilePayload {
