@@ -553,13 +553,6 @@ type CancelBackupTaskPayload {
   error: CancelBackupTaskError
 }
 
-type CancelDataExportTaskPayload {
-  cancelledId: ID
-  userError: CancelExportTaskError
-}
-
-union CancelExportTaskError = UnknownIdUserError | OtherUserError
-
 union CancelRestoreBackupTaskError = UnknownIdUserError | OtherUserError
 
 type CancelRestoreBackupTaskPayload {
@@ -897,10 +890,6 @@ type CreatedDataExportPayload {
   snapshot: Snapshot!
 }
 
-type CreatedDataExportTaskPayload {
-  exportTaskEdge: DataExportTaskEdge!
-}
-
 type CreatedEnvironmentPayload {
   environment: Environment!
   snapshot: Snapshot!
@@ -1046,16 +1035,8 @@ input DNSUpstreamResolverInput {
   id: ID!
 }
 
-type DataExport {
-  createdAt: DateTime!
-  downloadUri: Uri
-  error: String
-  format: DataExportFormat!
+interface DataExport {
   id: ID!
-  name: String!
-  path: String!
-  size: Int!
-  status: DataExportStatus!
 }
 
 """
@@ -1077,8 +1058,9 @@ enum DataExportFormat {
   JSON
 }
 
-input DataExportSettings {
-  includeRaw: Boolean!
+type DataExportOnDemand implements DataExport {
+  downloadUri: Uri!
+  id: ID!
 }
 
 enum DataExportStatus {
@@ -1088,23 +1070,22 @@ enum DataExportStatus {
   PROCESSING
 }
 
-type DataExportTask {
-  export: DataExport!
+type DataExportStored implements DataExport {
+  createdAt: DateTime!
+  downloadUri: Uri
+  error: String
+  format: DataExportFormat!
   id: ID!
+  name: String!
+  path: String!
+  size: Int!
+  status: DataExportStatus!
 }
 
-"""
-An edge in a connection.
-"""
-type DataExportTaskEdge {
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
-  """
-  The item at the end of the edge
-  """
-  node: DataExportTask!
+type DataExportTask implements Task {
+  createdAt: DateTime!
+  export: DataExport!
+  id: ID!
 }
 
 """
@@ -1296,10 +1277,6 @@ type DeletedDataExportPayload {
   snapshot: Snapshot!
 }
 
-type DeletedDataExportTaskPayload {
-  deletedExportTaskId: ID!
-}
-
 type DeletedEnvironmentPayload {
   deletedEnvironmentId: ID!
   snapshot: Snapshot!
@@ -1415,6 +1392,22 @@ input EnvironmentVariableInput {
 enum EnvironmentVariableKind {
   PLAIN
   SECRET
+}
+
+type ExpiredViewerProfilePayload {
+  expiredAt: Timestamp!
+}
+
+union ExportFindingsError = PermissionDeniedUserError | OtherUserError
+
+input ExportFindingsInput @oneOf {
+  filter: FilterClauseFindingInput
+  ids: [ID!]
+}
+
+type ExportFindingsPayload {
+  error: ExportFindingsError
+  export: DataExportOnDemand
 }
 
 input FilterClauseFindingInput {
@@ -1612,7 +1605,13 @@ type HostedFile {
   name: String!
   path: String!
   size: Int!
+  status: HostedFileStatus!
   updatedAt: DateTime!
+}
+
+enum HostedFileStatus {
+  ERROR
+  READY
 }
 
 scalar Image
@@ -1886,7 +1885,6 @@ type MoveTamperRulePayload {
 type MutationRoot {
   cancelAutomateTask(id: ID!): CancelAutomateTaskPayload!
   cancelBackupTask(id: ID!): CancelBackupTaskPayload!
-  cancelDataExportTask(id: ID!): CancelDataExportTaskPayload!
   cancelRestoreBackupTask(id: ID!): CancelRestoreBackupTaskPayload!
   cancelTask(id: ID!): CancelTaskPayload!
   clearSitemapEntries: ClearSitemapEntriesPayload!
@@ -1934,6 +1932,7 @@ type MutationRoot {
   deleteWorkflow(id: ID!): DeleteWorkflowPayload!
   dropInterceptMessage(id: ID!): DropInterceptMessagePayload!
   duplicateAutomateSession(id: ID!): DuplicateAutomateSessionPayload!
+  exportFindings(input: ExportFindingsInput!): ExportFindingsPayload!
   forwardInterceptMessage(id: ID!, input: ForwardInterceptMessageInput): ForwardInterceptMessagePayload!
   globalizeWorkflow(id: ID!): GlobalizeWorkflowPayload!
   hideFindings(input: HideFindingsInput): HideFindingsPayload!
@@ -2078,6 +2077,7 @@ type PauseInterceptPayload {
 enum PermissionDeniedErrorReason {
   ENTITLEMENT
   GUEST_USER
+  PLUGIN_USER
 }
 
 type PermissionDeniedUserError implements UserError {
@@ -2248,7 +2248,6 @@ type QueryRoot {
   browser: Browser
   currentProject: CurrentProject
   dataExport(id: ID!): DataExport
-  dataExportTasks: [DataExportTask!]!
   dataExports: [DataExport!]!
   dnsRewrites: [DNSRewrite!]!
   dnsUpstreams: [DNSUpstream!]!
@@ -2872,6 +2871,10 @@ type ScopeEdge {
   node: Scope!
 }
 
+type ScriptUser {
+  id: ID!
+}
+
 union SelectEnvironmentError = UnknownIdUserError | OtherUserError
 
 type SelectEnvironmentPayload {
@@ -3024,8 +3027,8 @@ type StartAutomateTaskPayload {
 input StartExportRequestsTaskInput {
   filter: HTTPQL
   format: DataExportFormat!
+  includeRaw: Boolean!
   scopeId: ID
-  settings: DataExportSettings!
 }
 
 type StartExportRequestsTaskPayload {
@@ -3083,6 +3086,7 @@ type StorePluginPackage {
   license: String!
   manifestId: ID!
   name: String
+  official: Boolean!
   repository: Url!
   version: Version!
 }
@@ -3244,7 +3248,6 @@ type SubscriptionRoot {
   createdAutomateTask: CreatedAutomateTaskPayload!
   createdBackup: CreatedBackupPayload!
   createdDataExport: CreatedDataExportPayload!
-  createdDataExportTask: CreatedDataExportTaskPayload!
   createdDnsRewrite: CreatedDNSRewritePayload!
   createdDnsUpstream: CreatedDNSUpstreamPayload!
   createdEnvironment: CreatedEnvironmentPayload!
@@ -3275,7 +3278,6 @@ type SubscriptionRoot {
   deletedBackup: DeletedBackupPayload!
   deletedBrowser: DeletedBrowserPayload!
   deletedDataExport: DeletedDataExportPayload!
-  deletedDataExportTask: DeletedDataExportTaskPayload!
   deletedDnsRewrite: DeletedDNSRewritePayload!
   deletedDnsUpstream: DeletedDNSUpstreamPayload!
   deletedEnvironment: DeletedEnvironmentPayload!
@@ -3295,6 +3297,7 @@ type SubscriptionRoot {
   deletedUpstreamProxyHttp: DeletedUpstreamProxyHttpPayload!
   deletedUpstreamProxySocks: DeletedUpstreamProxySocksPayload!
   deletedWorkflow: DeletedWorkflowPayload!
+  expiredViewerProfile: ExpiredViewerProfilePayload!
   finishedBackupTask: FinishedBackupTaskPayload!
   finishedDeleteInterceptEntriesTask: FinishedDeleteInterceptEntriesTaskPayload!
   finishedRestoreBackupTask: FinishedRestoreBackupTaskPayload!
@@ -4235,7 +4238,7 @@ URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
 """
 scalar Url
 
-union User = CloudUser | GuestUser
+union User = CloudUser | GuestUser | ScriptUser
 
 type UserEntitlement {
   name: String!
