@@ -406,6 +406,16 @@ input AutomatePreprocessorOptionsInput @oneOf {
   workflow: AutomateWorkflowPreprocessorInput
 }
 
+type AutomateRedirectSetting {
+  max: Int!
+  strategy: RedirectStrategy!
+}
+
+input AutomateRedirectSettingInput {
+  max: Int!
+  strategy: RedirectStrategy!
+}
+
 type AutomateRetryOnFailureSetting {
   backoff: Int!
   maximumRetries: Int!
@@ -462,6 +472,7 @@ type AutomateSettings {
   concurrency: AutomateConcurrencySetting!
   payloads: [AutomatePayload!]!
   placeholders: [AutomatePlaceholder!]!
+  redirect: AutomateRedirectSetting!
   retryOnFailure: AutomateRetryOnFailureSetting!
   strategy: AutomatePayloadStrategy!
   updateContentLength: Boolean!
@@ -472,6 +483,7 @@ input AutomateSettingsInput {
   concurrency: AutomateConcurrencySettingInput!
   payloads: [AutomatePayloadInput!]!
   placeholders: [AutomatePlaceholderInput!]!
+  redirect: AutomateRedirectSettingInput!
   retryOnFailure: AutomateRetryOnFailureSettingInput!
   strategy: AutomatePayloadStrategy!
   updateContentLength: Boolean!
@@ -2588,6 +2600,13 @@ type ReadOnlyUserError implements UserError {
   code: String!
 }
 
+enum RedirectStrategy {
+  ALWAYS
+  IN_SCOPE
+  NEVER
+  SAME_SITE
+}
+
 union RefreshAuthenticationTokenError =
   | AuthenticationUserError
   | CloudUserError
@@ -3088,6 +3107,7 @@ type Runtime {
   logs: Uri!
   platform: String!
   version: String!
+  workspace: Workspace @cloud
 }
 
 type Scope {
@@ -3588,6 +3608,7 @@ type SubscriptionRoot {
   updatedAutomateTask: UpdatedAutomateTaskPayload!
   updatedBackup: UpdatedBackupPayload!
   updatedBrowser: UpdatedBrowserPayload!
+  updatedCloudStatus: UpdatedCloudStatusPayload!
   updatedDataExport: UpdatedDataExportPayload!
   updatedDeleteInterceptEntriesTask: UpdatedDeleteInterceptEntriesTaskPayload!
   updatedDnsRewrite: UpdatedDNSRewritePayload!
@@ -3842,6 +3863,20 @@ input TamperOperationQueryUpdateInput {
   replacer: TamperReplacerInput!
 }
 
+union TamperOperationSNI = TamperOperationSNIRaw
+
+input TamperOperationSNIInput @oneOf {
+  raw: TamperOperationSNIRawInput
+}
+
+type TamperOperationSNIRaw {
+  replacer: TamperReplacer!
+}
+
+input TamperOperationSNIRawInput {
+  replacer: TamperReplacerInput!
+}
+
 union TamperOperationStatusCode = TamperOperationStatusCodeUpdate
 
 input TamperOperationStatusCodeInput @oneOf {
@@ -3920,6 +3955,7 @@ union TamperSection =
   | TamperSectionRequestFirstLine
   | TamperSectionRequestHeader
   | TamperSectionRequestAll
+  | TamperSectionRequestSNI
   | TamperSectionResponseBody
   | TamperSectionResponseStatusCode
   | TamperSectionResponseFirstLine
@@ -3934,6 +3970,7 @@ input TamperSectionInput @oneOf {
   requestMethod: TamperSectionRequestMethodInput
   requestPath: TamperSectionRequestPathInput
   requestQuery: TamperSectionRequestQueryInput
+  requestSNI: TamperSectionRequestSNIInput
   responseAll: TamperSectionResponseAllInput
   responseBody: TamperSectionResponseBodyInput
   responseFirstLine: TamperSectionResponseFirstLineInput
@@ -3995,6 +4032,14 @@ type TamperSectionRequestQuery {
 
 input TamperSectionRequestQueryInput {
   operation: TamperOperationQueryInput!
+}
+
+type TamperSectionRequestSNI {
+  operation: TamperOperationSNI!
+}
+
+input TamperSectionRequestSNIInput {
+  operation: TamperOperationSNIInput!
 }
 
 type TamperSectionResponseAll {
@@ -4400,6 +4445,10 @@ type UpdatedBrowserPayload {
   browser: Browser!
 }
 
+type UpdatedCloudStatusPayload {
+  cloudStatus: CloudStatus!
+}
+
 type UpdatedDNSRewritePayload {
   rewrite: DNSRewrite!
 }
@@ -4699,6 +4748,12 @@ type WorkflowUserError implements UserError {
   message: String!
   node: String
   reason: WorkflowErrorReason!
+}
+
+type Workspace {
+  generation: Int!
+  id: ID!
+  name: String!
 }
 
 directive @cloud on FIELD_DEFINITION
