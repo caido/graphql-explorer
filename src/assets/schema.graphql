@@ -890,6 +890,7 @@ input CreateTamperRuleInput {
   condition: HTTPQL
   name: String!
   section: TamperSectionInput!
+  sources: [Source!]!
 }
 
 type CreateTamperRulePayload {
@@ -3921,6 +3922,7 @@ type TamperRule {
   id: ID!
   name: String!
   section: TamperSection!
+  sources: [Source!]!
 }
 
 type TamperRuleCollection {
@@ -4357,6 +4359,7 @@ input UpdateTamperRuleInput {
   condition: HTTPQL
   name: String!
   section: TamperSectionInput!
+  sources: [Source!]!
 }
 
 type UpdateTamperRulePayload {
