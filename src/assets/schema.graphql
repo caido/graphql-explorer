@@ -64,6 +64,12 @@ enum Alteration {
   TAMPER
 }
 
+type AnalyticStatus {
+  cloud: Boolean!
+  enabled: Boolean!
+  local: Boolean!
+}
+
 enum AssistantErrorReason {
   CONTEXT_EXCEEDED
   INVALID_MODEL
@@ -898,6 +904,17 @@ type CreateTamperRulePayload {
   rule: TamperRule
 }
 
+input CreateUpstreamPluginInput {
+  allowlist: [String!]!
+  denylist: [String!]!
+  enabled: Boolean!
+  pluginId: ID!
+}
+
+type CreateUpstreamPluginPayload {
+  upstream: UpstreamPlugin
+}
+
 input CreateUpstreamProxyHttpInput {
   allowlist: [String!]!
   auth: UpstreamProxyAuthInput
@@ -1083,6 +1100,10 @@ type CreatedTamperRulePayload {
   snapshot: Snapshot!
 }
 
+type CreatedUpstreamPluginPayload {
+  upstream: UpstreamPlugin!
+}
+
 type CreatedUpstreamProxyHttpPayload {
   proxy: UpstreamProxyHttp!
 }
@@ -1194,6 +1215,14 @@ type DataExportTask implements Task {
   export: DataExport!
   id: ID!
 }
+
+type DataImportResult {
+  errors: [String!]!
+  id: ID!
+  summary: DataImportSummary
+}
+
+union DataImportSummary = TamperSummary | FindingsSummary
 
 """
 A datetime with timezone offset.
@@ -1325,6 +1354,10 @@ type DeleteTamperRulePayload {
   deletedId: ID
 }
 
+type DeleteUpstreamPluginPayload {
+  deletedId: ID
+}
+
 type DeleteUpstreamProxyHttpPayload {
   deletedId: ID
 }
@@ -1451,6 +1484,10 @@ type DeletedTamperRulePayload {
   snapshot: Snapshot!
 }
 
+type DeletedUpstreamPluginPayload {
+  deletedUpstreamId: ID!
+}
+
 type DeletedUpstreamProxyHttpPayload {
   deletedProxyId: ID!
 }
@@ -1515,6 +1552,17 @@ input ExportFindingsInput @oneOf {
 
 type ExportFindingsPayload {
   error: ExportFindingsError
+  export: DataExportOnDemand
+}
+
+union ExportTamperError = PermissionDeniedUserError | OtherUserError
+
+input ExportTamperInput {
+  target: TamperExportScopeInput!
+}
+
+type ExportTamperPayload {
+  error: ExportTamperError
   export: DataExportOnDemand
 }
 
@@ -1601,6 +1649,10 @@ input FindingOrderInput {
   ordering: Ordering!
 }
 
+type FindingsSummary {
+  findingsImported: Int!
+}
+
 type FinishedBackupTaskCancelled {
   taskId: ID!
 }
@@ -1674,7 +1726,6 @@ input ForwardInterceptStreamWsMessageInput {
 
 type GlobalConfig {
   address: String!
-  onboarding: OnboardingState!
   project: GlobalConfigProject!
 }
 
@@ -1745,6 +1796,19 @@ type ImportCertificatePayload {
   error: ImportCertificateError
 }
 
+input ImportDataInput @oneOf {
+  findings: ImportFindingsInput
+  tamper: ImportTamperRuleInput
+}
+
+input ImportFindingsInput {
+  file: Upload!
+}
+
+input ImportTamperRuleInput {
+  file: Upload!
+}
+
 union InstallBrowserError = UnsupportedPlatformUserError | CloudUserError | OtherUserError
 
 type InstallBrowserPayload {
@@ -1766,6 +1830,8 @@ type InstallPluginPackagePayload {
 
 type InstanceSettings {
   aiProviders: AIProviders!
+  analytic: AnalyticStatus!
+  onboarding: OnboardingState!
 }
 
 type InterceptEntry {
@@ -2034,6 +2100,7 @@ type MutationRoot {
   createTamperRuleCollection(
     input: CreateTamperRuleCollectionInput!
   ): CreateTamperRuleCollectionPayload!
+  createUpstreamPlugin(input: CreateUpstreamPluginInput!): CreateUpstreamPluginPayload!
   createUpstreamProxyHttp(input: CreateUpstreamProxyHttpInput!): CreateUpstreamProxyHttpPayload!
   createUpstreamProxySocks(input: CreateUpstreamProxySocksInput!): CreateUpstreamProxySocksPayload!
   createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload! @cloud
@@ -2058,12 +2125,14 @@ type MutationRoot {
   deleteSitemapEntries(ids: [ID!]!): DeleteSitemapEntriesPayload!
   deleteTamperRule(id: ID!): DeleteTamperRulePayload!
   deleteTamperRuleCollection(id: ID!): DeleteTamperRuleCollectionPayload!
+  deleteUpstreamPlugin(id: ID!): DeleteUpstreamPluginPayload!
   deleteUpstreamProxyHttp(id: ID!): DeleteUpstreamProxyHttpPayload!
   deleteUpstreamProxySocks(id: ID!): DeleteUpstreamProxySocksPayload!
   deleteWorkflow(id: ID!): DeleteWorkflowPayload!
   dropInterceptMessage(id: ID!): DropInterceptMessagePayload!
   duplicateAutomateSession(id: ID!): DuplicateAutomateSessionPayload!
   exportFindings(input: ExportFindingsInput!): ExportFindingsPayload!
+  exportTamper(input: ExportTamperInput!): ExportTamperPayload! @cloud
   forwardInterceptMessage(
     id: ID!
     input: ForwardInterceptMessageInput
@@ -2071,6 +2140,7 @@ type MutationRoot {
   globalizeWorkflow(id: ID!): GlobalizeWorkflowPayload!
   hideFindings(input: HideFindingsInput): HideFindingsPayload!
   importCertificate(input: ImportCertificateInput!): ImportCertificatePayload!
+  importData(input: ImportDataInput!): DataImportResult! @cloud
   installBrowser: InstallBrowserPayload! @cloud
   installPluginPackage(input: InstallPluginPackageInput!): InstallPluginPackagePayload! @cloud
   localizeWorkflow(id: ID!): LocalizeWorkflowPayload!
@@ -2083,6 +2153,7 @@ type MutationRoot {
   persistProject(id: ID!): PersistProjectPayload!
   rankDnsRewrite(id: ID!, input: RankInput!): RankDNSRewritePayload!
   rankTamperRule(id: ID!, input: RankTamperRuleInput!): RankTamperRulePayload!
+  rankUpstreamPlugin(id: ID!, input: RankInput!): RankUpstreamPluginPayload!
   rankUpstreamProxyHttp(id: ID!, input: RankInput!): RankUpstreamProxyHttpPayload!
   rankUpstreamProxySocks(id: ID!, input: RankInput!): RankUpstreamProxySocksPayload!
   refreshAuthenticationToken(refreshToken: Token!): RefreshAuthenticationTokenPayload! @cloud
@@ -2111,7 +2182,6 @@ type MutationRoot {
   sendAssistantMessage(sessionId: ID!, message: String): SendAssistantMessagePayload! @cloud
   setActiveReplaySessionEntry(id: ID!, entryId: ID!): SetActiveReplaySessionEntryPayload!
     @deprecated(reason: "Remove usage, no replacement")
-  setGlobalConfigOnboarding(input: SetConfigOnboardingInput!): SetConfigOnboardingPayload!
   setGlobalConfigPort(input: Int!): SetConfigPortPayload!
   setGlobalConfigProject(input: SetConfigProjectInput!): SetConfigProjectPayload!
   setInstanceSettings(input: SetInstanceSettingsInput!): SetInstanceSettingsPayload!
@@ -2133,9 +2203,11 @@ type MutationRoot {
   toggleDnsRewrite(id: ID!, enabled: Boolean!): ToggleDNSRewritePayload!
   togglePlugin(id: ID!, enabled: Boolean!): TogglePluginPayload!
   toggleTamperRule(id: ID!, enabled: Boolean!): ToggleTamperRulePayload!
+  toggleUpstreamPlugin(id: ID!, enabled: Boolean!): ToggleUpstreamPluginPayload!
   toggleUpstreamProxyHttp(id: ID!, enabled: Boolean!): ToggleUpstreamProxyHttpPayload!
   toggleUpstreamProxySocks(id: ID!, enabled: Boolean!): ToggleUpstreamProxySocksPayload!
   toggleWorkflow(id: ID!, enabled: Boolean!): ToggleWorkflowPayload!
+  track(input: TrackInput!): TrackPayload!
   uninstallPluginPackage(id: ID!): UninstallPluginPackagePayload!
   updateAutomateSession(id: ID!, input: UpdateAutomateSessionInput!): UpdateAutomateSessionPayload!
     @cloud
@@ -2148,6 +2220,7 @@ type MutationRoot {
   updateRequestMetadata(id: ID!, input: UpdateRequestMetadataInput!): UpdateRequestMetadataPayload!
   updateScope(id: ID!, input: UpdateScopeInput!): UpdateScopePayload!
   updateTamperRule(id: ID!, input: UpdateTamperRuleInput!): UpdateTamperRulePayload!
+  updateUpstreamPlugin(id: ID!, input: UpdateUpstreamPluginInput!): UpdateUpstreamPluginPayload!
   updateUpstreamProxyHttp(
     id: ID!
     input: UpdateUpstreamProxyHttpInput!
@@ -2172,9 +2245,7 @@ type NewerVersionUserError implements UserError {
 }
 
 type OnboardingState {
-  caCertificate: Boolean!
-  license: Boolean!
-  project: Boolean!
+  analytic: Boolean!
 }
 
 enum Ordering {
@@ -2537,6 +2608,7 @@ type QueryRoot {
   tamperRuleCollection(id: ID!): TamperRuleCollection
   tamperRuleCollections: [TamperRuleCollection!]!
   tasks: [Task!]!
+  upstreamPlugins: [UpstreamPlugin!]!
   upstreamProxiesHttp: [UpstreamProxyHttp!]!
   upstreamProxiesSocks: [UpstreamProxySocks!]!
   viewer: User!
@@ -2582,6 +2654,10 @@ input RankTamperRuleInput {
 type RankTamperRulePayload {
   error: RankTamperRuleError
   rule: TamperRule
+}
+
+type RankUpstreamPluginPayload {
+  upstream: UpstreamPlugin
 }
 
 type RankUpstreamProxyHttpPayload {
@@ -3168,16 +3244,6 @@ type SetActiveReplaySessionEntryPayload {
   session: ReplaySession
 }
 
-input SetConfigOnboardingInput {
-  caCertificate: Boolean!
-  license: Boolean!
-  project: Boolean!
-}
-
-type SetConfigOnboardingPayload {
-  config: GlobalConfig!
-}
-
 type SetConfigPortPayload {
   config: GlobalConfig!
 }
@@ -3193,6 +3259,8 @@ type SetConfigProjectPayload {
 
 input SetInstanceSettingsInput @oneOf {
   aiProvider: SettingsAIProviderInput
+  analytics: SettingsAnalyticInput
+  onboarding: SettingsOnboardingInput
 }
 
 type SetInstanceSettingsPayload {
@@ -3219,6 +3287,14 @@ input SettingsAIProviderInput @oneOf {
   google: AIProviderGoogleInput
   openai: AIProviderOpenAIInput
   openrouter: AIProviderOpenRouterInput
+}
+
+input SettingsAnalyticInput {
+  enabled: Boolean!
+}
+
+input SettingsOnboardingInput {
+  analytic: Boolean!
 }
 
 enum SitemapDescendantsDepth {
@@ -3293,6 +3369,7 @@ scalar Snapshot
 
 enum Source {
   AUTOMATE
+  IMPORT
   INTERCEPT
   PLUGIN
   REPLAY
@@ -3563,6 +3640,7 @@ type SubscriptionRoot {
   createdStreamWsMessage: CreatedStreamWsMessagePayload!
   createdTamperRule: CreatedTamperRulePayload!
   createdTamperRuleCollection: CreatedTamperRuleCollectionPayload!
+  createdUpstreamPlugin: CreatedUpstreamPluginPayload!
   createdUpstreamProxyHttp: CreatedUpstreamProxyHttpPayload!
   createdUpstreamProxySocks: CreatedUpstreamProxySocksPayload!
   createdWorkflow: CreatedWorkflowPayload!
@@ -3589,6 +3667,7 @@ type SubscriptionRoot {
   deletedSitemapEntry: DeletedSitemapEntriesPayload!
   deletedTamperRule: DeletedTamperRulePayload!
   deletedTamperRuleCollection: DeletedTamperRuleCollectionPayload!
+  deletedUpstreamPlugin: DeletedUpstreamPluginPayload!
   deletedUpstreamProxyHttp: DeletedUpstreamProxyHttpPayload!
   deletedUpstreamProxySocks: DeletedUpstreamProxySocksPayload!
   deletedWorkflow: DeletedWorkflowPayload!
@@ -3635,6 +3714,7 @@ type SubscriptionRoot {
   updatedStreamWsMessage: UpdatedStreamWsMessagePayload!
   updatedTamperRule: UpdatedTamperRulePayload!
   updatedTamperRuleCollection: UpdatedTamperRuleCollectionPayload!
+  updatedUpstreamPlugin: UpdatedUpstreamPluginPayload!
   updatedUpstreamProxyHttp: UpdatedUpstreamProxyHttpPayload!
   updatedUpstreamProxySocks: UpdatedUpstreamProxySocksPayload!
   updatedViewerAssistantUsage: UpdatedViewerAssistantUsagePayload!
@@ -3642,6 +3722,11 @@ type SubscriptionRoot {
   updatedViewerSettings: UpdatedViewerSettingsPayload!
   updatedWorkflow: UpdatedWorkflowPayload!
   uploadedHostedFile: UploadedHostedFilePayload!
+}
+
+input TamperExportScopeInput @oneOf {
+  collections: [ID!]
+  rules: [ID!]
 }
 
 type TamperMatcherFull {
@@ -4084,6 +4169,11 @@ input TamperSectionResponseStatusCodeInput {
   operation: TamperOperationStatusCodeInput!
 }
 
+type TamperSummary {
+  collectionsCreated: Int!
+  rulesImported: Int!
+}
+
 interface Task {
   createdAt: DateTime!
   id: ID!
@@ -4204,6 +4294,10 @@ type ToggleTamperRulePayload {
   rule: TamperRule
 }
 
+type ToggleUpstreamPluginPayload {
+  upstream: UpstreamPlugin
+}
+
 type ToggleUpstreamProxyHttpPayload {
   proxy: UpstreamProxyHttp
 }
@@ -4220,6 +4314,16 @@ type ToggleWorkflowPayload {
 }
 
 scalar Token
+
+input TrackInput {
+  createdAt: Timestamp!
+  name: String!
+  value: JsonObject!
+}
+
+type TrackPayload {
+  success: Boolean!
+}
 
 union UninstallPluginPackageError = UnknownIdUserError | OtherUserError
 
@@ -4365,6 +4469,17 @@ input UpdateTamperRuleInput {
 type UpdateTamperRulePayload {
   error: UpdateTamperRuleError
   rule: TamperRule
+}
+
+input UpdateUpstreamPluginInput {
+  allowlist: [String!]!
+  denylist: [String!]!
+  enabled: Boolean!
+  pluginId: ID!
+}
+
+type UpdateUpstreamPluginPayload {
+  upstream: UpstreamPlugin
 }
 
 input UpdateUpstreamProxyHttpInput {
@@ -4573,6 +4688,10 @@ type UpdatedTamperRulePayload {
   snapshot: Snapshot!
 }
 
+type UpdatedUpstreamPluginPayload {
+  upstream: UpstreamPlugin!
+}
+
 type UpdatedUpstreamProxyHttpPayload {
   proxy: UpstreamProxyHttp!
 }
@@ -4614,6 +4733,15 @@ type UploadedBrowserPayload {
 
 type UploadedHostedFilePayload {
   hostedFile: HostedFile!
+}
+
+type UpstreamPlugin {
+  allowlist: [String!]!
+  denylist: [String!]!
+  enabled: Boolean!
+  id: ID!
+  plugin: PluginBackend!
+  rank: Rank!
 }
 
 union UpstreamProxyAuth = UpstreamProxyAuthBasic
