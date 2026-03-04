@@ -1,10 +1,9 @@
 import { Voyager } from "graphql-voyager";
 import { sdlToSchema } from "./utils/sdl-to-introspection";
+import schema from "@caido/schema-proxy/graphql?raw";
 
 import "graphql-voyager/dist/voyager.css";
 import "./App.scss";
-
-import schema from "./assets/schema.graphql?raw";
 
 export default function App() {
   return (
