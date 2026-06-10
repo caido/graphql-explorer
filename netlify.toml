@@ -1,0 +1,6 @@
+[build]
+command = "make deploy-netlify"
+publish = "dist"
+
+[build.environment]
+MISE_VERSION = "2026.5.7"
